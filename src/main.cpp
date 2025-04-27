@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
     launch_initial_JONSWAP(h0, h0_x, h0_z, N, L, params);
 
-    save_complex_to_image(h0, N, "initial_jonswap.png");
+    save_complex_to_image(h0, N, "output/initial_jonswap.png");
 
     free(h0);
     free(h0_x);
