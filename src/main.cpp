@@ -17,11 +17,11 @@ void save_complex_to_image(const float2* h0, int N, const char* filename) {
             
             // Parte real mapeada al canal rojo (R)
             float real_part = h0[idx].x;
-            unsigned char red = static_cast<unsigned char>(fminf(fmaxf(real_part * 3.0f * 255.0f, 0.0f), 255.0f));
+            unsigned char red = static_cast<unsigned char>(fminf(fmaxf(real_part * 2.5f * 255.0f, 0.0f), 255.0f));
 
             // Parte imaginaria mapeada al canal verde (G)
             float imag_part = h0[idx].y;
-            unsigned char green = static_cast<unsigned char>(fminf(fmaxf(imag_part * 3.0f * 255.0f, 0.0f), 255.0f));
+            unsigned char green = static_cast<unsigned char>(fminf(fmaxf(imag_part * 2.5f * 255.0f, 0.0f), 255.0f));
 
             // El componente azul (B) es 0
             unsigned char blue = 0;

@@ -39,6 +39,19 @@ __device__ float Cosine2s(float theta, float s) {
     return NormalisationFactor(s) * powf(fabsf(cosf(0.5f * theta)), 2.0f * s);
 }
 
+__device__ float spread_power(float omega, float peak_omega) {
+    if(omega > peak_omega)
+        return 0.77f * powf(fabsf(omega / peak_omega),-2.5f);
+    else
+        return 0.97f * powf(fabsf(omega / peak_omega),5.0f);
+}
+
+__device__ float directional_spectrum(float theta, float omega, float peak_omega, JONSWAP_params params) {
+    float s = spread_power(omega, peak_omega) +
+        16 * tanhf(min(omega / peak_omega, 20.0f)) * params.swell * params.swell;
+    return lerp(2.0f / M_PI * cosf(theta) * cosf(theta),Cosine2s(theta - params.angle, s), params.spread_blend);
+}
+
 __global__ void generate_initial_JONSWAP(float2* h0, float2* h0_x, float2* h0_z,
     curandState* states, int N, int L, JONSWAP_params params) {
     int i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -76,17 +89,8 @@ __global__ void generate_initial_JONSWAP(float2* h0, float2* h0_x, float2* h0_z,
         }
         
         float r_peak = expf(-0.5f * powf((omega - omega_p) / (sigma * omega_p), 2.0f));
-
-        float spread_power = omega > omega_p ?
-            .77f * powf(fabsf(omega / omega_p),-2.5f) : .97f * powf(fabsf(omega / omega_p),5.0f);
         
-        float direction_spectrum = spread_power +
-            16 * tanhf(min(omega / omega_p, 20.0f)) * params.swell * params.swell;
-        
-        float directional_spread = lerp(2.0f / M_PI * cosf(wave_angle) * cosf(wave_angle),
-            Cosine2s(wave_angle - params.angle, spread_power), params.spread_blend);
-        
-        float JONSWAP = PM * powf(params.gamma, r_peak) * directional_spread;
+        float JONSWAP = PM * powf(params.gamma, r_peak) * directional_spectrum(wave_angle, omega, omega_p, params);
         float sqrtPh = sqrtf(JONSWAP * 0.5f);
         
         // complex fourier amplitudes
