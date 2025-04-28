@@ -18,7 +18,7 @@ __device__ void gaussian_random(curandState* state, float* outX, float* outY) {
     float theta = 2.0f * M_PI * u2;
 
     *outX = r * cosf(theta);
-    *outY = r * cosf(theta);
+    *outY = r * sinf(theta);
 }
 
 __device__ inline float lerp(float a, float b, float t) {
