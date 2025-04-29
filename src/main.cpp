@@ -2,9 +2,10 @@
 #include <cstdlib>
 #include <cufft.h>
 #include <cuda_runtime.h>
-#include "../include/spectra.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../include/stb_image_write.h"
+
+#include "../include/sim_time.h"
 
 const int N = 256;
 const int L = 250;
@@ -86,8 +87,8 @@ int main(int argc, char* argv[]) {
         "Usage: ./fft_program scale wind_speed angle spread_blend swell fetch depth short_waves_fade\n Exiting...";
         return -1;
     }
-    JONSWAP_params params;
-    params.scale = atof(argv[1]);
+    
+    /*params.scale = atof(argv[1]);
     params.wind_speed = atof(argv[2]);
     params.angle = atof(argv[3]);
     params.spread_blend = atof(argv[4]);
@@ -96,30 +97,7 @@ int main(int argc, char* argv[]) {
     params.depth = atof(argv[7]);
     params.short_waves_fade = atof(argv[8]);
     params.gamma = 3.3f;
-    params.g = 9.81f;
-
-    float2* h0_k = (float2*)malloc(N * N * sizeof(float2));
-    float4* h0   = (float4*)malloc(N * N * sizeof(float4));
-    float4* waves_data = (float4*)malloc(N * N * sizeof(float4));
-
-    launch_initial_JONSWAP(h0_k, h0, waves_data, N, L, params);
-
-    save_complex_to_image(h0_k, N, "output/initial_jonswap.png");
-
-    float2* d_h0_k;
-    float2* hk = (float2*)malloc(sizeof(float2) * N * N);
-    cudaMalloc(&d_h0_k, sizeof(float2) * N * N);
-    cudaMemcpy(d_h0_k, h0_k, sizeof(float2) * N * N, cudaMemcpyHostToDevice);
-    cufftHandle plan;
-    cufftPlan2d(&plan, N, N, CUFFT_C2C);
-    cufftExecC2C(plan, d_h0_k, d_h0_k, CUFFT_INVERSE);
-    cudaMemcpy(hk, d_h0_k, sizeof(float2) * N * N, cudaMemcpyDeviceToHost);
-    cudaFree(d_h0_k);
-    generate_heightmap(hk, N, "output/ifft_heightmap.png");
-
-    free(h0);
-    free(h0_k);
-    free(waves_data);
-    free(hk);
+    params.g = 9.81f;*/
+    
     return 0;
 }
