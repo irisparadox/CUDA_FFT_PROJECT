@@ -7,7 +7,7 @@
 #include "../include/stb_image_write.h"
 
 const int N = 256;
-const int L = 256;
+const int L = 250;
 
 void save_complex_to_image(const float2* h0, int N, const char* filename) {
     unsigned char* image = new unsigned char[N * N * 3];
@@ -81,41 +81,45 @@ void generate_heightmap(const float2* hx, int N, const char* filename) {
 }
 
 int main(int argc, char* argv[]) {
-    if(argc != 6) {
-        std::cout << "Error: too few arguments. Usage: ./fft_program wind_speed angle spread_blend swell fetch\n Exiting...";
+    if(argc != 9) {
+        std::cout << "Error: too few arguments. " << 
+        "Usage: ./fft_program scale wind_speed angle spread_blend swell fetch depth short_waves_fade\n Exiting...";
         return -1;
     }
     JONSWAP_params params;
-    params.wind_speed = atof(argv[1]);
-    params.angle = atof(argv[2]);
-    params.spread_blend = atof(argv[3]);
-    params.swell = atof(argv[4]);
-    params.fetch = atof(argv[5]);
+    params.scale = atof(argv[1]);
+    params.wind_speed = atof(argv[2]);
+    params.angle = atof(argv[3]);
+    params.spread_blend = atof(argv[4]);
+    params.swell = atof(argv[5]);
+    params.fetch = atof(argv[6]);
+    params.depth = atof(argv[7]);
+    params.short_waves_fade = atof(argv[8]);
     params.gamma = 3.3f;
     params.g = 9.81f;
 
-    float2* h0 = (float2*)malloc(N * N * sizeof(float2));
-    float2* h0_x = (float2*)malloc(N * N * sizeof(float2));
-    float2* h0_z = (float2*)malloc(N * N * sizeof(float2));
+    float2* h0_k = (float2*)malloc(N * N * sizeof(float2));
+    float4* h0   = (float4*)malloc(N * N * sizeof(float4));
+    float4* waves_data = (float4*)malloc(N * N * sizeof(float4));
 
-    launch_initial_JONSWAP(h0, h0_x, h0_z, N, L, params);
+    launch_initial_JONSWAP(h0_k, h0, waves_data, N, L, params);
 
-    save_complex_to_image(h0, N, "output/initial_jonswap.png");
+    save_complex_to_image(h0_k, N, "output/initial_jonswap.png");
 
-    float2* d_h0;
-    float2* hx = (float2*)malloc(sizeof(float2) * N * N);
-    cudaMalloc(&d_h0, sizeof(float2) * N * N);
-    cudaMemcpy(d_h0, h0, sizeof(float2) * N * N, cudaMemcpyHostToDevice);
+    float2* d_h0_k;
+    float2* hk = (float2*)malloc(sizeof(float2) * N * N);
+    cudaMalloc(&d_h0_k, sizeof(float2) * N * N);
+    cudaMemcpy(d_h0_k, h0_k, sizeof(float2) * N * N, cudaMemcpyHostToDevice);
     cufftHandle plan;
     cufftPlan2d(&plan, N, N, CUFFT_C2C);
-    cufftExecC2C(plan, d_h0, d_h0, CUFFT_INVERSE);
-    cudaMemcpy(hx, d_h0, sizeof(float2) * N * N, cudaMemcpyDeviceToHost);
-    cudaFree(d_h0);
-    generate_heightmap(hx, N, "output/ifft_heightmap.png");
+    cufftExecC2C(plan, d_h0_k, d_h0_k, CUFFT_INVERSE);
+    cudaMemcpy(hk, d_h0_k, sizeof(float2) * N * N, cudaMemcpyDeviceToHost);
+    cudaFree(d_h0_k);
+    generate_heightmap(hk, N, "output/ifft_heightmap.png");
 
     free(h0);
-    free(h0_x);
-    free(h0_z);
-    free(hx);
+    free(h0_k);
+    free(waves_data);
+    free(hk);
     return 0;
 }
