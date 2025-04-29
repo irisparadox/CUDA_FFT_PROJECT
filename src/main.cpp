@@ -6,6 +6,7 @@
 #include "../include/stb_image_write.h"
 
 #include "../include/sim_time.h"
+#include "../include/spectra.h"
 
 const int N = 256;
 const int L = 250;
@@ -98,6 +99,6 @@ int main(int argc, char* argv[]) {
     params.short_waves_fade = atof(argv[8]);
     params.gamma = 3.3f;
     params.g = 9.81f;*/
-    
+
     return 0;
 }
