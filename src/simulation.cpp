@@ -1,3 +1,6 @@
+#include <GL/glew.h>
+#include <cuda_gl_interop.h> 
+
 #include "../include/simulation.h"
 #include "../include/time_spectra.h"
 #include "../include/sim_time.h"
@@ -57,6 +60,19 @@ void Simulation::sim_init() {
     cudaMalloc(&h0, sizeof(float4) * resolution * resolution);
     cudaMalloc(&waves_data, sizeof(float4) * resolution * resolution);
 
+    glGenBuffers(1, &vbo_dx_dz);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_dx_dz);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenBuffers(1, &vbo_dy_dxz);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_dy_dxz);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    cudaGraphicsGLRegisterBuffer(&cuda_vbo_dx_dz_resource, vbo_dx_dz, cudaGraphicsMapFlagsWriteDiscard);
+    cudaGraphicsGLRegisterBuffer(&cuda_vbo_dy_dxz_resource, vbo_dy_dxz, cudaGraphicsMapFlagsWriteDiscard);
+
     launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
 
     cufftPlan2d(&fft, resolution, resolution, CUFFT_C2C);
@@ -67,6 +83,22 @@ void Simulation::sim_run() {
 
     cufftExecC2C(fft, dx_dz, dx_dz, CUFFT_INVERSE);
     cufftExecC2C(fft, dy_dxz, dy_dxz, CUFFT_INVERSE);
+
+    update_vbo();
+}
+
+void Simulation::update_vbo() {
+    cudaGraphicsMapResources(1, &cuda_vbo_dx_dz_resource, 0);
+    cudaGraphicsMapResources(1, &cuda_vbo_dy_dxz_resource, 0);
+
+    float2* device_ptr;
+    size_t num_bytes;
+
+    cudaGraphicsResourceGetMappedPointer((void**)&device_ptr, &num_bytes, cuda_vbo_dx_dz_resource);
+    cudaMemcpy(device_ptr, dx_dz, num_bytes, cudaMemcpyDeviceToDevice);
+
+    cudaGraphicsResourceGetMappedPointer((void**)&device_ptr, &num_bytes, cuda_vbo_dy_dxz_resource);
+    cudaMemcpy(device_ptr, dy_dxz, num_bytes, cudaMemcpyDeviceToDevice);
 }
 
 void Simulation::sim_end() {

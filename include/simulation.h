@@ -5,6 +5,8 @@
 #include <cuda_runtime.h>
 #include <cufft.h>
 
+#include <GLFW/glfw3.h> 
+
 #include "../include/spectra.h"
 
 class Simulation {
@@ -22,6 +24,7 @@ public:
 private:
     void sim_init();
     void sim_end();
+    void update_vbo();
 
 private:
     float2* h0_k;
@@ -30,6 +33,9 @@ private:
     
     float2* dx_dz;
     float2* dy_dxz;
+
+    GLuint vbo_dx_dz, vbo_dy_dxz;
+    cudaGraphicsResource* cuda_vbo_dx_dz_resource,* cuda_vbo_dy_dxz_resource;
     
     int resolution;
     int longitude;
