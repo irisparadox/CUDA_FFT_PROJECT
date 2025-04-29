@@ -91,14 +91,18 @@ void Simulation::update_vbo() {
     cudaGraphicsMapResources(1, &cuda_vbo_dx_dz_resource, 0);
     cudaGraphicsMapResources(1, &cuda_vbo_dy_dxz_resource, 0);
 
-    float2* device_ptr;
+    float2* ptr_dx_dz;
+    float2* ptr_dy_dxz;
     size_t num_bytes;
 
-    cudaGraphicsResourceGetMappedPointer((void**)&device_ptr, &num_bytes, cuda_vbo_dx_dz_resource);
-    cudaMemcpy(device_ptr, dx_dz, num_bytes, cudaMemcpyDeviceToDevice);
+    cudaGraphicsResourceGetMappedPointer((void**)&ptr_dx_dz, &num_bytes, cuda_vbo_dx_dz_resource);
+    cudaMemcpy(ptr_dx_dz, dx_dz, num_bytes, cudaMemcpyDeviceToDevice);
 
-    cudaGraphicsResourceGetMappedPointer((void**)&device_ptr, &num_bytes, cuda_vbo_dy_dxz_resource);
-    cudaMemcpy(device_ptr, dy_dxz, num_bytes, cudaMemcpyDeviceToDevice);
+    cudaGraphicsResourceGetMappedPointer((void**)&ptr_dy_dxz, &num_bytes, cuda_vbo_dy_dxz_resource);
+    cudaMemcpy(ptr_dy_dxz, dy_dxz, num_bytes, cudaMemcpyDeviceToDevice);
+
+    cudaGraphicsUnmapResources(1, &cuda_vbo_dx_dz_resource, 0);
+    cudaGraphicsUnmapResources(1, &cuda_vbo_dy_dxz_resource, 0);
 }
 
 void Simulation::sim_end() {
