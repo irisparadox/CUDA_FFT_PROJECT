@@ -87,7 +87,7 @@ void Render::render_gui_window() {
 
     ImGui::Begin("Heightmap Visualization", &window_bool, ImGuiWindowFlags_None);
     {
-        ImVec2 image_size(tex_width, tex_height);
+        ImVec2 image_size(tex_width * 2, tex_height * 2);
         ImTextureID tex_id = (ImTextureID)(intptr_t)ifft_heightmap;
         ImGui::Image(tex_id, image_size);
     }

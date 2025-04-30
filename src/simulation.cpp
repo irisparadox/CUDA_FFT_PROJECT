@@ -10,17 +10,17 @@ Simulation::Simulation(int simulation_res, int plane_longitude) :
     resolution(simulation_res), longitude(plane_longitude)
 {
     params.scale = 1.0f;
-    params.wind_speed = 90.0f;
+    params.wind_speed = 75.0f;
     params.angle = 1.0f;
     params.spread_blend = 0.9f;
-    params.swell = 1.0f;
+    params.swell = 0.9f;
     params.fetch = 50000.0f;
-    params.depth = 0.5f;
+    params.depth = 5.0f;
     params.short_waves_fade = 0.01f;
     params.gamma = 3.3f;
     params.g = 9.81f;
 
-    lambda = make_float2(.5f,.5f);
+    lambda = make_float2(1.0f,1.0f);
 
     sim_init();
 }
