@@ -8,8 +8,7 @@
 #include "../include/sim_time.h"
 #include "../include/spectra.h"
 
-const int N = 256;
-const int L = 250;
+#include "../include/window.h"
 
 void save_complex_to_image(const float2* h0, int N, const char* filename) {
     unsigned char* image = new unsigned char[N * N * 3];
@@ -40,65 +39,17 @@ void save_complex_to_image(const float2* h0, int N, const char* filename) {
     delete[] image;
 }
 
-void generate_heightmap(const float2* hx, int N, const char* filename) {
-    unsigned char* image = new unsigned char[N * N * 3];
+int main() {
+    Window window(1200, 720, "IFFT Ocean Simulation");
 
-    float min_val = 1e20f;
-    float max_val = -1e20f;
+    while(!window.should_close()) {
+        window.poll_events();
 
-    // 1. Calculamos mínimo y máximo
-    for (int i = 0; i < N * N; i++) {
-        float val = fabsf(hx[i].x); // usamos valor absoluto
-        if (val < min_val) min_val = val;
-        if (val > max_val) max_val = val;
+        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        window.swap_buffers();
     }
-
-    float range = max_val - min_val;
-    if (range == 0.0f) range = 1.0f; // evitar división por cero
-
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            int idx = i * N + j;
-
-            float real_part = fabsf(hx[idx].x); // trabajamos con el absoluto
-
-            // Normalizamos a [0, 1]
-            float normalized = (real_part - min_val) / range;
-
-            // Aplicamos expansión de contraste real:
-            normalized = sqrtf(normalized * normalized); // raíz cuadrada: expande valores pequeños
-
-            unsigned char intensity = static_cast<unsigned char>(normalized * 255.0f);
-
-            int pixel_idx = (i * N + j) * 3;
-            image[pixel_idx + 0] = intensity; // R
-            image[pixel_idx + 1] = intensity; // G
-            image[pixel_idx + 2] = intensity; // B
-        }
-    }
-
-    stbi_write_png(filename, N, N, 3, image, N * 3);
-
-    delete[] image;
-}
-
-int main(int argc, char* argv[]) {
-    if(argc != 9) {
-        std::cout << "Error: too few arguments. " << 
-        "Usage: ./fft_program scale wind_speed angle spread_blend swell fetch depth short_waves_fade\n Exiting...";
-        return -1;
-    }
-    
-    /*params.scale = atof(argv[1]);
-    params.wind_speed = atof(argv[2]);
-    params.angle = atof(argv[3]);
-    params.spread_blend = atof(argv[4]);
-    params.swell = atof(argv[5]);
-    params.fetch = atof(argv[6]);
-    params.depth = atof(argv[7]);
-    params.short_waves_fade = atof(argv[8]);
-    params.gamma = 3.3f;
-    params.g = 9.81f;*/
 
     return 0;
 }

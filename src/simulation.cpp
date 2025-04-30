@@ -4,6 +4,7 @@
 #include "../include/simulation.h"
 #include "../include/time_spectra.h"
 #include "../include/sim_time.h"
+#include "../include/pack_spectrum.h"
 
 Simulation::Simulation(int simulation_res, int plane_longitude) :
     resolution(simulation_res), longitude(plane_longitude)
@@ -19,12 +20,14 @@ Simulation::Simulation(int simulation_res, int plane_longitude) :
     params.gamma = 3.3f;
     params.g = 9.81f;
 
+    lambda = make_float2(.5f,.5f);
+
     sim_init();
 }
 
 Simulation::Simulation(int simulation_res, int plane_longitude, float scale, float wind_speed, float angle,
-    float spread_blend, float swell, float fetch, float depth, float short_waves_fade) :
-    resolution(simulation_res), longitude(plane_longitude)
+    float spread_blend, float swell, float fetch, float depth, float short_waves_fade, float2 lambda) :
+    resolution(simulation_res), longitude(plane_longitude), lambda(lambda)
 {
     params.scale = scale;
     params.wind_speed = wind_speed;
@@ -44,34 +47,22 @@ Simulation::~Simulation() {
     sim_end();
 }
 
-float2* Simulation::get_dx_dz() {
-    return dx_dz;
-}
-
-float2* Simulation::get_dy_dxz() {
-    return dy_dxz;
-}
-
 void Simulation::sim_init() {
     cudaMalloc(&h0_k, sizeof(float2) * resolution * resolution);
     cudaMalloc(&dx_dz, sizeof(float2) * resolution * resolution);
     cudaMalloc(&dy_dxz, sizeof(float2) * resolution * resolution);
 
+    cudaMalloc(&displacement, sizeof(float3) * resolution * resolution);
+
     cudaMalloc(&h0, sizeof(float4) * resolution * resolution);
     cudaMalloc(&waves_data, sizeof(float4) * resolution * resolution);
 
-    glGenBuffers(1, &vbo_dx_dz);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_dx_dz);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &vbo_displacement);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_displacement);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float3) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glGenBuffers(1, &vbo_dy_dxz);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_dy_dxz);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    cudaGraphicsGLRegisterBuffer(&cuda_vbo_dx_dz_resource, vbo_dx_dz, cudaGraphicsMapFlagsWriteDiscard);
-    cudaGraphicsGLRegisterBuffer(&cuda_vbo_dy_dxz_resource, vbo_dy_dxz, cudaGraphicsMapFlagsWriteDiscard);
+    cudaGraphicsGLRegisterBuffer(&cuda_vbo_displacement, vbo_displacement, cudaGraphicsMapFlagsWriteDiscard);
 
     launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
 
@@ -84,25 +75,21 @@ void Simulation::sim_run() {
     cufftExecC2C(fft, dx_dz, dx_dz, CUFFT_INVERSE);
     cufftExecC2C(fft, dy_dxz, dy_dxz, CUFFT_INVERSE);
 
+    pack_and_assemble(dx_dz, dy_dxz, displacement, resolution, lambda);
+
     update_vbo();
 }
 
 void Simulation::update_vbo() {
-    cudaGraphicsMapResources(1, &cuda_vbo_dx_dz_resource, 0);
-    cudaGraphicsMapResources(1, &cuda_vbo_dy_dxz_resource, 0);
+    cudaGraphicsMapResources(1, &cuda_vbo_displacement, 0);
 
-    float2* ptr_dx_dz;
-    float2* ptr_dy_dxz;
+    float3* ptr_displacement;
     size_t num_bytes;
 
-    cudaGraphicsResourceGetMappedPointer((void**)&ptr_dx_dz, &num_bytes, cuda_vbo_dx_dz_resource);
-    cudaMemcpy(ptr_dx_dz, dx_dz, num_bytes, cudaMemcpyDeviceToDevice);
+    cudaGraphicsResourceGetMappedPointer((void**)&ptr_displacement, &num_bytes, cuda_vbo_displacement);
+    cudaMemcpy(ptr_displacement, displacement, num_bytes, cudaMemcpyDeviceToDevice);
 
-    cudaGraphicsResourceGetMappedPointer((void**)&ptr_dy_dxz, &num_bytes, cuda_vbo_dy_dxz_resource);
-    cudaMemcpy(ptr_dy_dxz, dy_dxz, num_bytes, cudaMemcpyDeviceToDevice);
-
-    cudaGraphicsUnmapResources(1, &cuda_vbo_dx_dz_resource, 0);
-    cudaGraphicsUnmapResources(1, &cuda_vbo_dy_dxz_resource, 0);
+    cudaGraphicsUnmapResources(1, &cuda_vbo_displacement, 0);
 }
 
 void Simulation::sim_end() {
@@ -110,6 +97,9 @@ void Simulation::sim_end() {
     cudaFree(h0_k);
     cudaFree(dx_dz);
     cudaFree(dy_dxz);
+    cudaFree(displacement);
     cudaFree(h0);
     cudaFree(waves_data);
+    cudaGraphicsUnregisterResource(cuda_vbo_displacement);
+    glDeleteBuffers(1, &vbo_displacement);
 }
