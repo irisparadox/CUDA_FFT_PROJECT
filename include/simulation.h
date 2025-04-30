@@ -7,7 +7,7 @@
 
 #include <GLFW/glfw3.h> 
 
-#include "../include/spectra.h"
+#include "spectra.h"
 
 class Simulation {
 public:
@@ -18,6 +18,8 @@ public:
 
 public:
     void sim_run();
+    GLuint get_displacement_vbo();
+    int get_resolution();
 
 private:
     void sim_init();

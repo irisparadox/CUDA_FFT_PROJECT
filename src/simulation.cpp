@@ -80,6 +80,14 @@ void Simulation::sim_run() {
     update_vbo();
 }
 
+GLuint Simulation::get_displacement_vbo() {
+    return vbo_displacement;
+}
+
+int Simulation::get_resolution() {
+    return resolution;
+}
+
 void Simulation::update_vbo() {
     cudaGraphicsMapResources(1, &cuda_vbo_displacement, 0);
 

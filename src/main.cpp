@@ -1,14 +1,10 @@
 #include <iostream>
 #include <cstdlib>
-#include <cufft.h>
 #include <cuda_runtime.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../include/stb_image_write.h"
 
-#include "../include/sim_time.h"
-#include "../include/spectra.h"
-
-#include "../include/window.h"
+#include "../include/application.h"
 
 void save_complex_to_image(const float2* h0, int N, const char* filename) {
     unsigned char* image = new unsigned char[N * N * 3];
@@ -40,16 +36,8 @@ void save_complex_to_image(const float2* h0, int N, const char* filename) {
 }
 
 int main() {
-    Window window(1200, 720, "IFFT Ocean Simulation");
-
-    while(!window.should_close()) {
-        window.poll_events();
-
-        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        window.swap_buffers();
-    }
+    Application app(1280, 720, "IFFT Ocean Simulation");
+    app.run();
 
     return 0;
 }
