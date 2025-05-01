@@ -15,12 +15,13 @@ public:
 
 private:
     void init_imgui_context(GLFWwindow* window);
-    void init_texture(int width, int height);
-    void update_texture(GLuint vbo, int width, int height);
+    void init_texture(GLuint* textureID, int width, int height);
+    void update_texture(GLuint vbo, GLuint* textureID, int width, int height);
     void render_gui_window();
 
     Simulation sim;
     GLuint ifft_heightmap;
+    GLuint ifft_slope;
     int tex_width, tex_height;
 };
 

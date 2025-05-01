@@ -19,12 +19,13 @@ public:
 public:
     void sim_run();
     GLuint get_displacement_vbo();
+    GLuint get_slope_vbo();
     int get_resolution();
 
 private:
     void sim_init();
     void sim_end();
-    void update_vbo();
+    void update_vbo(cudaGraphicsResource** cuda_res, float3* data);
 
 private:
     float2* h0_k;
@@ -33,11 +34,18 @@ private:
     
     float2* dx_dz;
     float2* dy_dxz;
+    float2* dyx_dyz;
+    float2* dxx_dzz;
 
     float3* displacement;
+    float2* slope;
+
+    float3* meso_normals;
 
     GLuint vbo_displacement;
+    GLuint vbo_slope;
     cudaGraphicsResource* cuda_vbo_displacement;
+    cudaGraphicsResource* cuda_vbo_slope;
     
     int resolution;
     int longitude;
