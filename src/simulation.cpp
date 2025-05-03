@@ -11,17 +11,17 @@ Simulation::Simulation(int simulation_res, int plane_longitude) :
     resolution(simulation_res), longitude(plane_longitude)
 {
     params.scale = 1.0f;
-    params.wind_speed = 10.0f;
+    params.wind_speed = 125.0f;
     params.angle = 5.0f;
-    params.spread_blend = 0.9f;
-    params.swell = 0.1f;
-    params.fetch = 500.0f;
-    params.depth = 0.2f;
+    params.spread_blend = 1.0f;
+    params.swell = 1.0f;
+    params.fetch = 100000.0f;
+    params.depth = 10.0f;
     params.short_waves_fade = 0.01f;
     params.gamma = 3.3f;
     params.g = 9.81f;
 
-    lambda = make_float2(.9f,.9f);
+    lambda = make_float2(.96f,.96f);
 
     sim_init();
 }
@@ -97,16 +97,35 @@ void Simulation::sim_run() {
     update_vbo(&cuda_vbo_slope, meso_normals);
 }
 
-GLuint Simulation::get_displacement_vbo() {
+GLuint Simulation::get_displacement_vbo() const {
     return vbo_displacement;
 }
 
-GLuint Simulation::get_slope_vbo() {
+GLuint Simulation::get_slope_vbo() const {
     return vbo_slope;
 }
 
-int Simulation::get_resolution() {
+int Simulation::get_resolution() const {
     return resolution;
+}
+
+int Simulation::set_resolution(int n) {
+    resolution = n;
+}
+int Simulation::get_l() const {
+    return longitude;
+}
+int Simulation::set_l(int l) {
+    longitude = l;
+}
+
+JONSWAP_params Simulation::get_params() const {
+    return params;
+}
+
+void Simulation::set_params(JONSWAP_params new_params) {
+    params = new_params;
+    launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
 }
 
 void Simulation::update_vbo(cudaGraphicsResource** cuda_res, float3* data) {

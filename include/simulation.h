@@ -7,6 +7,7 @@
 
 #include <GLFW/glfw3.h> 
 
+#include "spectra_params.h"
 #include "spectra.h"
 
 class Simulation {
@@ -18,9 +19,14 @@ public:
 
 public:
     void sim_run();
-    GLuint get_displacement_vbo();
-    GLuint get_slope_vbo();
-    int get_resolution();
+    GLuint get_displacement_vbo() const;
+    GLuint get_slope_vbo() const;
+    int get_resolution() const;
+    int set_resolution(int n);
+    int get_l() const;
+    int set_l(int l);
+    JONSWAP_params get_params() const;
+    void set_params(JONSWAP_params new_params);
 
 private:
     void sim_init();

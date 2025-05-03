@@ -2,9 +2,10 @@
 #include "../external/imgui/imgui.h"
 #include "../external/imgui/backends/imgui_impl_glfw.h"
 #include "../external/imgui/backends/imgui_impl_opengl3.h"
+#include "../include/spectra_params.h"
 
 
-Render::Render(GLFWwindow* window) : ifft_heightmap(0), tex_width(0), tex_height(0), sim(256, 100) {
+Render::Render(GLFWwindow* window) : ifft_heightmap(0), tex_width(0), tex_height(0), sim(1024, 100) {
     init_imgui_context(window);
 }
 
@@ -79,25 +80,81 @@ void Render::render_gui_window() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
-    static bool window_bool = true;
-    static bool init_window = true;
-    if (init_window) {
-        ImGui::SetNextWindowSize(ImVec2(tex_width * 3.5f, tex_height * 1.85f), ImGuiCond_Always);
-        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-        init_window = false;
+    static bool visualizer_bool = true;
+
+    const float target_image_width = 400.0f;
+    const float target_image_height = 400.0f;
+    
+    float image_aspect_ratio = (float)tex_width / (float)tex_height;
+    
+    ImVec2 image_size;
+    if (image_aspect_ratio > 1.0f) {
+        image_size.x = target_image_width;
+        image_size.y = target_image_width / image_aspect_ratio;
+    } else {
+        image_size.y = target_image_height;
+        image_size.x = target_image_height * image_aspect_ratio;
     }
 
-    ImGui::Begin("Heightmap Visualization", &window_bool, ImGuiWindowFlags_NoResize);
+    const float padding = 10.0f;
+    float title_bar_height = ImGui::GetFrameHeight();
+
+    ImVec2 window_size(
+        (image_size.x * 2) + (padding * 3),
+        image_size.y + (padding * 2) + title_bar_height
+    );
+
+    ImGui::SetNextWindowSize(window_size, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(400, 100), ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("Visualizer", &visualizer_bool, ImGuiWindowFlags_NoResize);
     {
-        ImVec2 image_size(tex_width * 1.7f, tex_height * 1.7f);
+        ImGui::SetCursorPos(ImVec2(padding, title_bar_height + padding));
         ImTextureID tex_id = (ImTextureID)(intptr_t)ifft_heightmap;
         ImGui::Image(tex_id, image_size);
 
-        ImGui::SameLine();
+        ImGui::SetCursorPos(ImVec2(image_size.x + padding * 2, title_bar_height + padding));
         ImTextureID tex_id2 = (ImTextureID)(intptr_t)ifft_slope;
         ImGui::Image(tex_id2, image_size);
     }
     ImGui::End();
+
+    static bool parameters_bool = true;
+
+    ImGui::SetNextWindowSize(ImVec2(250, 300), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(0,0), ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("Parameters", &parameters_bool, ImGuiWindowFlags_None);
+    {   
+        static JONSWAP_params params = sim.get_params();
+        //static int n = sim.get_resolution();
+        //static int l = sim.get_l();
+
+        //ImGui::InputInt("Resolution", &n);
+        //ImGui::InputInt("Longitude", &l);
+
+        //ImGui::Separator();
+
+        ImGui::SliderFloat("Scale", &params.scale, 0.1f, 5.0f, "%.2f");
+        ImGui::InputFloat("Wind Speed", &params.wind_speed, 5.0f, 15.0f, "%.1f");
+        ImGui::SliderAngle("Angle", &params.angle, 0.0f, 360.0f, "%.0f deg");
+        ImGui::SliderFloat("Spread Blend", &params.spread_blend, 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Swell", &params.swell, 0.0f, 1.5f, "%.2f");
+        ImGui::InputFloat("Fetch", &params.fetch, 50.0f, 100.0f, "%.1f");
+        ImGui::InputFloat("Depth", &params.depth, 0.1f, 0.5f, "%.2f");
+        ImGui::SliderFloat("Short Waves Fade", &params.short_waves_fade, 0.005f, 1.0f, "%.3f");
+        ImGui::InputFloat("Gamma", &params.gamma, 0.1f, 0.3f, "%.1f");
+        ImGui::InputFloat("Gravity", &params.g, 0.01f, 0.1f, "%.2f");
+
+        ImGui::Separator();
+        if(ImGui::Button("Apply")) {
+            //sim.set_resolution(n);
+            //sim.set_l(l);
+            sim.set_params(params);
+        }
+    }
+    ImGui::End();
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

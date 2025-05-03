@@ -26,7 +26,7 @@ __global__ void compute_normal_from_slope(float2* slope, float3* meso_normals, i
     if(i < N && j < N) {
         int idx = i * N + j;
         float3 macroNormal = make_float3(0.0f, 1.0f, 0.0f);
-        float3 mesoNormal = normalize3(make_float3(-slope[idx].x, .2f, -slope[idx].y));
+        float3 mesoNormal = normalize3(make_float3(-slope[idx].x * 10.0f, 1.0f, -slope[idx].y * 10.0f));
 
         float weight = powf(saturate(depth), attenuation);
         meso_normals[idx] = normalize3(lerp(macroNormal, mesoNormal, weight));
@@ -37,6 +37,6 @@ void compute_meso_normals(float2* slope, float3* meso_normals, int N) {
     dim3 blockDim(32, 32);
     dim3 gridDim((N + blockDim.x - 1) / blockDim.x, (N + blockDim.y - 1) / blockDim.y);
 
-    compute_normal_from_slope<<<gridDim, blockDim>>>(slope, meso_normals, N, 1.0f, 10.0f);
+    compute_normal_from_slope<<<gridDim, blockDim>>>(slope, meso_normals, N, 0.1f, 0.05f);
     cudaDeviceSynchronize();
 }
