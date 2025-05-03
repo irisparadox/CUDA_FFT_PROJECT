@@ -27,6 +27,8 @@ public:
     int set_l(int l);
     JONSWAP_params get_params() const;
     void set_params(JONSWAP_params new_params);
+    float2 get_lambda() const;
+    void set_lambda(float2 lm);
 
 private:
     void sim_init();

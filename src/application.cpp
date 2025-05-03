@@ -39,6 +39,7 @@ void Application::run() {
         window->swap_buffers();
     }
 
+    running = false;
     on_shutdown();
 }
 

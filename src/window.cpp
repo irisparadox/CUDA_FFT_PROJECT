@@ -1,4 +1,6 @@
 #include "../include/window.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "../external/stb_image.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -13,6 +15,7 @@ Window::Window(int width, int height, const char* title)
     }
 
     setup_callbacks();
+    //set_icon();
 }
 
 Window::~Window() {
@@ -47,6 +50,20 @@ void Window::create_window(int width, int height, const char* title) {
 
 void Window::setup_callbacks() {
     glfwSetFramebufferSizeCallback(handle, framebuffer_size_callback);
+}
+
+void Window::set_icon() {
+    int width, height, channels;
+    unsigned char* pixels = stbi_load("resources/icon.png", &width, &height, &channels, 4);
+
+    if(pixels && width == 32 && height == 32) {
+        GLFWimage icon;
+        icon.width = 32;
+        icon.height = 32;
+        icon.pixels = pixels;
+        glfwSetWindowIcon(handle, 1, &icon);
+        stbi_image_free(pixels);
+    }
 }
 
 void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height) {

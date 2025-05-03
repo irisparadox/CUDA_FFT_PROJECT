@@ -128,6 +128,14 @@ void Simulation::set_params(JONSWAP_params new_params) {
     launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
 }
 
+float2 Simulation::get_lambda() const {
+    return lambda;
+}
+
+void Simulation::set_lambda(float2 lm) {
+    lambda = lm;
+}
+
 void Simulation::update_vbo(cudaGraphicsResource** cuda_res, float3* data) {
     cudaGraphicsMapResources(1, cuda_res, 0);
 

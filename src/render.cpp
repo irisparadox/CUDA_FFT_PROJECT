@@ -105,9 +105,9 @@ void Render::render_gui_window() {
     );
 
     ImGui::SetNextWindowSize(window_size, ImGuiCond_Once);
-    ImGui::SetNextWindowPos(ImVec2(400, 100), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(440, 10), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Visualizer", &visualizer_bool, ImGuiWindowFlags_NoResize);
+    ImGui::Begin("Visualizer", &visualizer_bool, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     {
         ImGui::SetCursorPos(ImVec2(padding, title_bar_height + padding));
         ImTextureID tex_id = (ImTextureID)(intptr_t)ifft_heightmap;
@@ -122,7 +122,7 @@ void Render::render_gui_window() {
     static bool parameters_bool = true;
 
     ImGui::SetNextWindowSize(ImVec2(250, 300), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(0,0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(20,10), ImGuiCond_Once);
 
     ImGui::Begin("Parameters", &parameters_bool, ImGuiWindowFlags_None);
     {   
@@ -146,12 +146,24 @@ void Render::render_gui_window() {
         ImGui::InputFloat("Gamma", &params.gamma, 0.1f, 0.3f, "%.1f");
         ImGui::InputFloat("Gravity", &params.g, 0.01f, 0.1f, "%.2f");
 
-        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0,20));
+
         if(ImGui::Button("Apply")) {
             //sim.set_resolution(n);
             //sim.set_l(l);
             sim.set_params(params);
         }
+
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0,5));
+
+        static float lambdaX = sim.get_lambda().x;
+        static float lambdaY = sim.get_lambda().y;
+        static float lambda[2] = {lambdaX, lambdaY};
+        if(ImGui::SliderFloat2("Choppiness", lambda, 0.0f, 1.0f, "%.2f")) {
+            sim.set_lambda(make_float2(lambda[0],lambda[1]));
+        }
+        
     }
     ImGui::End();
 

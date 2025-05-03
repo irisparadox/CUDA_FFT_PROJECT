@@ -1,6 +1,6 @@
 CC = g++
 NVCC = nvcc
-CFLAGS = -Wall -g -I./include -I/usr/local/cuda/include -I./external/imgui -I./external/imgui/backends -I./external/glfw/include -I./external/glm
+CFLAGS = -Wall -g -I./include -I./external -I/usr/local/cuda/include -I./external/imgui -I./external/imgui/backends -I./external/glfw/include -I./external/glm
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu -L./external/glfw/build/src
 LIBS = -lcudart -lcufft -lm -lGLEW -lGL -lglfw3
 OUTPUT_DIR = ./output

@@ -24,6 +24,7 @@ private:
     void init_glfw();
     void create_window(int width, int height, const char* title);
     void setup_callbacks();
+    void set_icon();
 
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
