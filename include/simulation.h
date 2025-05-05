@@ -21,6 +21,8 @@ public:
     void sim_run();
     GLuint get_displacement_vbo() const;
     GLuint get_slope_vbo() const;
+    GLuint get_jonswap_vbo() const;
+    GLuint get_h0t_vbo() const;
     int get_resolution() const;
     int set_resolution(int n);
     int get_l() const;
@@ -33,10 +35,12 @@ public:
 private:
     void sim_init();
     void sim_end();
-    void update_vbo(cudaGraphicsResource** cuda_res, float3* data);
+    template <typename _Ty>
+    void update_vbo(cudaGraphicsResource** cuda_res, _Ty data);
 
 private:
     float2* h0_k;
+    float2* h0t;
     float4* h0;
     float4* waves_data;
     
@@ -52,8 +56,12 @@ private:
 
     GLuint vbo_displacement;
     GLuint vbo_slope;
+    GLuint vbo_init_jonswap;
+    GLuint vbo_time_spectrum;
     cudaGraphicsResource* cuda_vbo_displacement;
     cudaGraphicsResource* cuda_vbo_slope;
+    cudaGraphicsResource* cuda_vbo_init_jonswap;
+    cudaGraphicsResource* cuda_vbo_h0t;
     
     int resolution;
     int longitude;

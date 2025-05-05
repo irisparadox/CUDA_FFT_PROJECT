@@ -7,7 +7,7 @@ __device__ inline float2 complex_mult(const float2 a, const float2 b) {
     );
 }
 
-__global__ void calculate_amplitudes(float4* h0, float4* waves_data,
+__global__ void calculate_amplitudes(float4* h0, float4* waves_data, float2* h0t,
     float2* dx_dz, float2* dy_dxz, float2* dyx_dyz, float2* dxx_dzz, int N, float time) {
     int i = threadIdx.y + blockIdx.y * blockDim.y;
     int j = threadIdx.x + blockIdx.x * blockDim.x;
@@ -20,6 +20,8 @@ __global__ void calculate_amplitudes(float4* h0, float4* waves_data,
         float2 h0iw = complex_mult(make_float2(h0[idx].x, h0[idx].y), exponent);
         float2 h0minusiw = complex_mult(make_float2(h0[idx].z, h0[idx].w), make_float2(exponent.x, -exponent.y));
         float2 h = make_float2(h0iw.x + h0minusiw.x, h0iw.y + h0minusiw.y);
+
+        h0t[idx] = h;
         
         float2 ih = make_float2(-h.y, h.x);
 
@@ -41,11 +43,11 @@ __global__ void calculate_amplitudes(float4* h0, float4* waves_data,
     }
 }
 
-void update_spectra(float4* h0, float4* waves_data,
+void update_spectra(float4* h0, float4* waves_data, float2* h0t,
     float2* dx_dz, float2* dy_dxz, float2* dyx_dyz, float2* dxx_dzz, int N, float time) {
     dim3 blockDim(32, 32);
     dim3 gridDim((N + blockDim.x - 1) / blockDim.x, (N + blockDim.y - 1) / blockDim.y);
 
-    calculate_amplitudes<<<gridDim, blockDim>>>(h0, waves_data, dx_dz, dy_dxz, dyx_dyz, dxx_dzz, N, time);
+    calculate_amplitudes<<<gridDim, blockDim>>>(h0, waves_data, h0t, dx_dz, dy_dxz, dyx_dyz, dxx_dzz, N, time);
     cudaDeviceSynchronize();
 }

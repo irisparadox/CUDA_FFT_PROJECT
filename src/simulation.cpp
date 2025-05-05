@@ -50,6 +50,7 @@ Simulation::~Simulation() {
 
 void Simulation::sim_init() {
     cudaMalloc(&h0_k, sizeof(float2) * resolution * resolution);
+    cudaMalloc(&h0t, sizeof(float2) * resolution * resolution);
     cudaMalloc(&dx_dz, sizeof(float2) * resolution * resolution);
     cudaMalloc(&dy_dxz, sizeof(float2) * resolution * resolution);
     cudaMalloc(&dyx_dyz, sizeof(float2) * resolution * resolution);
@@ -65,6 +66,8 @@ void Simulation::sim_init() {
 
     glGenBuffers(1, &vbo_displacement);
     glGenBuffers(1, &vbo_slope);
+    glGenBuffers(1, &vbo_init_jonswap);
+    glGenBuffers(1, &vbo_time_spectrum);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo_displacement);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float3) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
@@ -72,18 +75,29 @@ void Simulation::sim_init() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_slope);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float3) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
 
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_init_jonswap);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_time_spectrum);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * resolution * resolution, nullptr, GL_DYNAMIC_DRAW);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     cudaGraphicsGLRegisterBuffer(&cuda_vbo_displacement, vbo_displacement, cudaGraphicsMapFlagsWriteDiscard);
     cudaGraphicsGLRegisterBuffer(&cuda_vbo_slope, vbo_slope, cudaGraphicsMapFlagsWriteDiscard);
+    cudaGraphicsGLRegisterBuffer(&cuda_vbo_init_jonswap, vbo_init_jonswap, cudaGraphicsMapFlagsWriteDiscard);
+    cudaGraphicsGLRegisterBuffer(&cuda_vbo_h0t, vbo_time_spectrum, cudaGraphicsMapFlagsWriteDiscard);
 
     launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
+    apply_brightness(h0_k, 20.0f, resolution);
+    update_vbo<float2*>(&cuda_vbo_init_jonswap, h0_k);
 
     cufftPlan2d(&fft, resolution, resolution, CUFFT_C2C);
 }
 
 void Simulation::sim_run() {
-    update_spectra(h0, waves_data, dx_dz, dy_dxz, dyx_dyz, dxx_dzz, resolution, Time::time);
+    update_spectra(h0, waves_data, h0t, dx_dz, dy_dxz, dyx_dyz, dxx_dzz, resolution, Time::time);
+    apply_brightness(h0t, 20.0f, resolution);
 
     cufftExecC2C(fft, dx_dz, dx_dz, CUFFT_INVERSE);
     cufftExecC2C(fft, dy_dxz, dy_dxz, CUFFT_INVERSE);
@@ -93,8 +107,9 @@ void Simulation::sim_run() {
     pack_and_assemble(dx_dz, dy_dxz, dyx_dyz, dxx_dzz, displacement, slope, resolution, lambda);
     compute_meso_normals(slope, meso_normals, resolution);
 
-    update_vbo(&cuda_vbo_displacement, displacement);
-    update_vbo(&cuda_vbo_slope, meso_normals);
+    update_vbo<float3*>(&cuda_vbo_displacement, displacement);
+    update_vbo<float3*>(&cuda_vbo_slope, meso_normals);
+    update_vbo<float2*>(&cuda_vbo_h0t, h0t);
 }
 
 GLuint Simulation::get_displacement_vbo() const {
@@ -103,6 +118,14 @@ GLuint Simulation::get_displacement_vbo() const {
 
 GLuint Simulation::get_slope_vbo() const {
     return vbo_slope;
+}
+
+GLuint Simulation::get_jonswap_vbo() const {
+    return vbo_init_jonswap;
+}
+
+GLuint Simulation::get_h0t_vbo() const {
+    return vbo_time_spectrum;
 }
 
 int Simulation::get_resolution() const {
@@ -126,6 +149,8 @@ JONSWAP_params Simulation::get_params() const {
 void Simulation::set_params(JONSWAP_params new_params) {
     params = new_params;
     launch_initial_JONSWAP(h0_k, h0, waves_data, resolution, longitude, params);
+    apply_brightness(h0_k, 20.0f, resolution);
+    update_vbo<float2*>(&cuda_vbo_init_jonswap, h0_k);
 }
 
 float2 Simulation::get_lambda() const {
@@ -136,10 +161,11 @@ void Simulation::set_lambda(float2 lm) {
     lambda = lm;
 }
 
-void Simulation::update_vbo(cudaGraphicsResource** cuda_res, float3* data) {
+template <typename _Ty>
+void Simulation::update_vbo(cudaGraphicsResource** cuda_res, _Ty data) {
     cudaGraphicsMapResources(1, cuda_res, 0);
 
-    float3* ptr_dev;
+    _Ty ptr_dev;
     size_t num_bytes;
 
     cudaGraphicsResourceGetMappedPointer((void**)&ptr_dev, &num_bytes, *cuda_res);
@@ -151,6 +177,7 @@ void Simulation::update_vbo(cudaGraphicsResource** cuda_res, float3* data) {
 void Simulation::sim_end() {
     cufftDestroy(fft);
     cudaFree(h0_k);
+    cudaFree(h0t);
     cudaFree(dx_dz);
     cudaFree(dy_dxz);
     cudaFree(dyx_dyz);
@@ -162,6 +189,10 @@ void Simulation::sim_end() {
     cudaFree(waves_data);
     cudaGraphicsUnregisterResource(cuda_vbo_displacement);
     cudaGraphicsUnregisterResource(cuda_vbo_slope);
+    cudaGraphicsUnregisterResource(cuda_vbo_init_jonswap);
+    cudaGraphicsUnregisterResource(cuda_vbo_h0t);
     glDeleteBuffers(1, &vbo_displacement);
     glDeleteBuffers(1, &vbo_slope);
+    glDeleteBuffers(1, &vbo_init_jonswap);
+    glDeleteBuffers(1, &vbo_time_spectrum);
 }

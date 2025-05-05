@@ -23,43 +23,58 @@ void Render::init_imgui_context(GLFWwindow* window) {
 }
 
 void Render::init() {
-    init_texture(&ifft_heightmap, sim.get_resolution(), sim.get_resolution());
-    init_texture(&ifft_slope, sim.get_resolution(), sim.get_resolution());
+    init_texture(&ifft_heightmap, sim.get_resolution(), sim.get_resolution(), GL_RGB32F, GL_RGB, GL_LINEAR);
+    init_texture(&ifft_slope, sim.get_resolution(), sim.get_resolution(), GL_RGB32F, GL_RGB, GL_LINEAR);
+    init_texture(&initial_jonswap, sim.get_resolution(), sim.get_resolution(), GL_RG32F, GL_RG, GL_NEAREST);
+    update_texture(sim.get_jonswap_vbo(), &initial_jonswap, sim.get_resolution(),
+        sim.get_resolution(), GL_RG32F, GL_RG, GL_NEAREST);
+    init_texture(&h0t, sim.get_resolution(), sim.get_resolution(), GL_RG32F, GL_RG, GL_NEAREST);
 }
 
 void Render::update() {
     sim.sim_run();
-    update_texture(sim.get_displacement_vbo(), &ifft_heightmap, sim.get_resolution(), sim.get_resolution());
-    update_texture(sim.get_slope_vbo(), &ifft_slope, sim.get_resolution(), sim.get_resolution());
+    update_texture(sim.get_displacement_vbo(), &ifft_heightmap,
+        sim.get_resolution(), sim.get_resolution(), GL_RGB32F, GL_RGB, GL_LINEAR);
+    update_texture(sim.get_slope_vbo(), &ifft_slope, sim.get_resolution(),
+        sim.get_resolution(), GL_RGB32F, GL_RGB, GL_LINEAR);
+    render_gui_window();
+    update_texture(sim.get_h0t_vbo(), &h0t, sim.get_resolution(),
+        sim.get_resolution(), GL_RG32F, GL_RG, GL_NEAREST);
     render_gui_window();
 }
 
 void Render::shutdown() {
     if(ifft_heightmap)
         glDeleteTextures(1, &ifft_heightmap);
+    if(ifft_slope)
+        glDeleteTextures(1, &ifft_slope);
+    if(initial_jonswap)
+        glDeleteTextures(1, &initial_jonswap);
+    if(h0t)
+        glDeleteTextures(1, &h0t);
 
     ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
 
-void Render::init_texture(GLuint* textureID, int width, int height) {
+void Render::init_texture(GLuint* textureID, int width, int height, GLint type, GLint channels, GLint filter) {
     tex_width = width;
     tex_height = height;
 
     glGenTextures(1, textureID);
     glBindTexture(GL_TEXTURE_2D, *textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, 
-                GL_RGB, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, type, width, height, 0, 
+                channels, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void Render::update_texture(GLuint vbo, GLuint* textureID, int width, int height) {
+void Render::update_texture(GLuint vbo, GLuint* textureID, int width, int height, GLint type, GLint channels, GLint filter) {
     if (width != tex_width || height != tex_height) {
-        init_texture(textureID, width, height);
+        init_texture(textureID, width, height, type, channels, filter);
     }
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -68,7 +83,7 @@ void Render::update_texture(GLuint vbo, GLuint* textureID, int width, int height
     if (data) {
         glBindTexture(GL_TEXTURE_2D, *textureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, 
-                       GL_RGB, GL_FLOAT, data);
+                       channels, GL_FLOAT, data);
         glUnmapBuffer(GL_ARRAY_BUFFER);
     }
     
@@ -107,7 +122,8 @@ void Render::render_gui_window() {
     ImGui::SetNextWindowSize(window_size, ImGuiCond_Once);
     ImGui::SetNextWindowPos(ImVec2(440, 10), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Visualizer", &visualizer_bool, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Begin("Heightmap & Normalmap Visualizer", &visualizer_bool,
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     {
         ImGui::SetCursorPos(ImVec2(padding, title_bar_height + padding));
         ImTextureID tex_id = (ImTextureID)(intptr_t)ifft_heightmap;
@@ -115,6 +131,23 @@ void Render::render_gui_window() {
 
         ImGui::SetCursorPos(ImVec2(image_size.x + padding * 2, title_bar_height + padding));
         ImTextureID tex_id2 = (ImTextureID)(intptr_t)ifft_slope;
+        ImGui::Image(tex_id2, image_size);
+    }
+    ImGui::End();
+
+    static bool spectrum_bool = true;
+
+    ImGui::SetNextWindowSize(window_size, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(440,470), ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("Spectrum Visualizer", &spectrum_bool, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    {
+        ImGui::SetCursorPos(ImVec2(padding, title_bar_height + padding));
+        ImTextureID tex_id = (ImTextureID)(intptr_t)initial_jonswap;
+        ImGui::Image(tex_id, image_size);
+
+        ImGui::SetCursorPos(ImVec2(image_size.x + padding * 2, title_bar_height + padding));
+        ImTextureID tex_id2 = (ImTextureID)(intptr_t)h0t;
         ImGui::Image(tex_id2, image_size);
     }
     ImGui::End();
@@ -152,6 +185,8 @@ void Render::render_gui_window() {
             //sim.set_resolution(n);
             //sim.set_l(l);
             sim.set_params(params);
+            update_texture(sim.get_jonswap_vbo(), &initial_jonswap, sim.get_resolution(),
+                sim.get_resolution(), GL_RG32F, GL_RG, GL_NEAREST);
         }
 
         ImGui::Separator();

@@ -25,11 +25,32 @@ __global__ void assemble_maps(float2* dx_dz, float2* dy_dxz, float2* dyx_dyz, fl
     }
 }
 
+__global__ void apply_brightness_kernel(float2* h0_k, float brightness, int N) {
+    int i = threadIdx.y + blockIdx.y * blockDim.y;
+    int j = threadIdx.x + blockIdx.x * blockDim.x;
+    if(i < N && j < N) {
+        int idx = i * N + j;
+        h0_k[idx].x *= brightness;
+        h0_k[idx].y *= brightness;
+
+        h0_k[idx].x = fmaxf(0.0f, fminf(255.0f, h0_k[idx].x * 255.0f));
+        h0_k[idx].y = fmaxf(0.0f, fminf(255.0f, h0_k[idx].y * 255.0f));
+    }
+}
+
 void pack_and_assemble(float2* dx_dz, float2* dy_dxz, float2* dyx_dyz, float2* dxx_dzz,
     float3* displacement, float2* slope, int N, float2 lambda) {
     dim3 blockDim(32, 32);
     dim3 gridDim((N + blockDim.x - 1) / blockDim.x, (N + blockDim.y - 1) / blockDim.y);
 
     assemble_maps<<<gridDim, blockDim>>>(dx_dz, dy_dxz, dyx_dyz, dxx_dzz, displacement, slope, N, lambda);
+    cudaDeviceSynchronize();
+}
+
+void apply_brightness(float2* h0_k, float brightness, int N) {
+    dim3 blockDim(32, 32);
+    dim3 gridDim((N + blockDim.x - 1) / blockDim.x, (N + blockDim.y - 1) / blockDim.y);
+
+    apply_brightness_kernel<<<gridDim, blockDim>>>(h0_k, brightness, N);
     cudaDeviceSynchronize();
 }
