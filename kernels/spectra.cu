@@ -114,8 +114,8 @@ __device__ float JONSWAP(float omega, JONSWAP_params* params) {
 
     return params->scale * TMA_correction(omega, params->g, params->depth) * params->alpha * params->g * params->g
         * one_over_omega * one_over_omega * one_over_omega * one_over_omega * one_over_omega
-        * expf(-1.25 * peak_omega_over_omega * peak_omega_over_omega * peak_omega_over_omega * peak_omega_over_omega
-        * powf(fabsf(params->gamma), r));
+        * expf(-1.25 * peak_omega_over_omega * peak_omega_over_omega * peak_omega_over_omega * peak_omega_over_omega)
+        * powf(fabsf(params->gamma), r);
 
 }
 
