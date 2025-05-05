@@ -58,7 +58,8 @@ private:
     void start_stats_thread();
     void stop_stats_thread();
     float get_cpu_usage();
-    float get_gpu_usage();
+    float get_ram_usage();
+    std::pair<float,float> get_gpu_usage();
 
     Simulation sim;
     GLuint ifft_heightmap;

@@ -48,12 +48,16 @@ void Render::init() {
 
 void Render::start_stats_thread() {
     stats_thread = std::thread([this]() {
+        using pair = std::pair<float,float>;
         while(stats_running) {
             float current_cpu_usage = get_cpu_usage();
-            float current_gpu_usage = get_gpu_usage();
+            pair current_gpu_usage = get_gpu_usage();
+            float current_ram_usage = get_ram_usage();
             float time = current_time.load();
             cpu_usage.add_point(time, current_cpu_usage);
-            gpu_usage.add_point(time, current_gpu_usage);
+            ram_usage.add_point(time, current_ram_usage);
+            gpu_usage.add_point(time, current_gpu_usage.first);
+            vram_usage.add_point(time, current_gpu_usage.second);
             std::this_thread::sleep_for(std::chrono::seconds(2));
         }
     });
@@ -290,13 +294,44 @@ float Render::get_cpu_usage() {
     return 100.0f * (float)delta_proc / (float)delta_total;
 }
 
-float Render::get_gpu_usage() {
+float Render::get_ram_usage() {
+    std::ifstream meminfo("/proc/meminfo");
+    std::string line;
+    long mem_total_kb = 0;
+
+    while (std::getline(meminfo, line)) {
+        if (line.rfind("MemTotal:", 0) == 0) {
+            std::istringstream iss(line);
+            std::string label;
+            iss >> label >> mem_total_kb;
+            break;
+        }
+    }
+
+    std::ifstream status("/proc/self/status");
+    long vmrss_kb = 0;
+
+    while (std::getline(status, line)) {
+        if (line.rfind("VmRSS:", 0) == 0) {
+            std::istringstream iss(line);
+            std::string label;
+            iss >> label >> vmrss_kb;
+            break;
+        }
+    }
+
+    if (mem_total_kb == 0) return 0.0f;
+    return 100.0f * (float)vmrss_kb / (float)mem_total_kb;
+}
+
+std::pair<float,float> Render::get_gpu_usage() {
+    using pair = std::pair<float,float>;
     int pid = getpid();
     std::stringstream cmd;
     cmd << "nvidia-smi pmon -c 1 -s u | grep \" " << pid << " \"";
 
     FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) return -1;
+    if (!pipe) return pair(-1,-1);
 
     char buffer[256];
     if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -308,21 +343,25 @@ float Render::get_gpu_usage() {
         iss >> gpu_id >> proc_pid >> type >> sm >> mem >> enc >> dec >> jpg >> ofa;
 
         pclose(pipe);
-        return sm;
+        return pair(sm,mem);
     }
 
     pclose(pipe);
-    return -1;
+    return pair(-1,-1);
 }
 
 void Render::render_stats_plots() {
     static float times[HISTORY_SIZE];
     static float cpu_values[HISTORY_SIZE];
+    static float ram_values[HISTORY_SIZE];
     static float gpu_values[HISTORY_SIZE];
+    static float vram_values[HISTORY_SIZE];
     int size = 0;
 
     cpu_usage.get_data(times, cpu_values, size);
+    ram_usage.get_data(times, ram_values, size);
     gpu_usage.get_data(times, gpu_values, size);
+    vram_usage.get_data(times, vram_values, size);
 
     static bool stats_bool = true;
 
@@ -336,7 +375,7 @@ void Render::render_stats_plots() {
             float x_min = (Time::time < window_size) ? 0.0f : Time::time - window_size;
             float x_max = x_min + window_size;
             ImPlot::SetupAxisLimits(ImAxis_X1, x_min, x_max, ImGuiCond_Always);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0f, 100.0f, ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0f, 100.0f, ImGuiCond_Once);
 
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
 
@@ -344,9 +383,15 @@ void Render::render_stats_plots() {
             ImPlot::PlotShaded("GPU", times, gpu_values, size);
             ImPlot::PlotLine("GPU", times, gpu_values, size);
 
+            ImPlot::PlotShaded("VRAM", times, vram_values, size);
+            ImPlot::PlotLine("VRAM", times, vram_values, size);
+
             //ImPlot::SetNextFillStyle(ImVec4(0.988, 0.266, 0.87, 0.15f));
             ImPlot::PlotShaded("CPU", times, cpu_values, size);
             ImPlot::PlotLine("CPU", times, cpu_values, size);
+
+            ImPlot::PlotShaded("RAM", times, ram_values, size);
+            ImPlot::PlotLine("RAM", times, ram_values, size);
 
             ImPlot::PopStyleVar();
             ImPlot::EndPlot();
