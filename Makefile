@@ -19,7 +19,9 @@ IMGUI_SRC = \
     $(IMGUI_DIR)/imgui_tables.cpp \
     $(IMGUI_DIR)/imgui_widgets.cpp \
     $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp \
-    $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+    $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp \
+	$(IMGUI_DIR)/implot.cpp \
+	$(IMGUI_DIR)/implot_items.cpp
 OBJ_CPP = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/cxx/%.o,$(SRC_CPP))
 OBJ_CU = $(patsubst $(KERNELS_DIR)/%.cu,$(OBJ_DIR)/cuda/%.o,$(KERNELS_CU))
 OBJ_IMGUI = $(patsubst $(IMGUI_DIR)/%.cpp,$(OBJ_DIR)/imgui/%.o,$(IMGUI_SRC))

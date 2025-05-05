@@ -27,6 +27,8 @@ public:
     int set_resolution(int n);
     int get_l() const;
     int set_l(int l);
+    float get_normal_strength() const;
+    void set_normal_strength(float n);
     JONSWAP_params get_params() const;
     void set_params(JONSWAP_params new_params);
     float2 get_lambda() const;
@@ -52,7 +54,7 @@ private:
     float3* displacement;
     float2* slope;
 
-    float3* meso_normals;
+    float3* normals;
 
     GLuint vbo_displacement;
     GLuint vbo_slope;
@@ -70,6 +72,7 @@ private:
     
     JONSWAP_params params;
     float2 lambda;
+    float normal_strength;
 };
 
 #endif

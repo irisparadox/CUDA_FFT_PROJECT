@@ -22,6 +22,7 @@ Simulation::Simulation(int simulation_res, int plane_longitude) :
     params.g = 9.81f;
 
     lambda = make_float2(.96f,.96f);
+    normal_strength = 10.0f;
 
     sim_init();
 }
@@ -41,6 +42,8 @@ Simulation::Simulation(int simulation_res, int plane_longitude, float scale, flo
     params.gamma = 3.3f;
     params.g = 9.81f;
 
+    normal_strength = 10.0f;
+
     sim_init();
 }
 
@@ -59,7 +62,7 @@ void Simulation::sim_init() {
     cudaMalloc(&displacement, sizeof(float3) * resolution * resolution);
     cudaMalloc(&slope, sizeof(float2) * resolution * resolution);
 
-    cudaMalloc(&meso_normals, sizeof(float3) * resolution * resolution);
+    cudaMalloc(&normals, sizeof(float3) * resolution * resolution);
 
     cudaMalloc(&h0, sizeof(float4) * resolution * resolution);
     cudaMalloc(&waves_data, sizeof(float4) * resolution * resolution);
@@ -105,10 +108,10 @@ void Simulation::sim_run() {
     cufftExecC2C(fft, dxx_dzz, dxx_dzz, CUFFT_INVERSE);
 
     pack_and_assemble(dx_dz, dy_dxz, dyx_dyz, dxx_dzz, displacement, slope, resolution, lambda);
-    compute_meso_normals(slope, meso_normals, resolution);
+    compute_normals(slope, normals, normal_strength, resolution);
 
     update_vbo<float3*>(&cuda_vbo_displacement, displacement);
-    update_vbo<float3*>(&cuda_vbo_slope, meso_normals);
+    update_vbo<float3*>(&cuda_vbo_slope, normals);
     update_vbo<float2*>(&cuda_vbo_h0t, h0t);
 }
 
@@ -135,11 +138,21 @@ int Simulation::get_resolution() const {
 int Simulation::set_resolution(int n) {
     resolution = n;
 }
+
 int Simulation::get_l() const {
     return longitude;
 }
+
 int Simulation::set_l(int l) {
     longitude = l;
+}
+
+float Simulation::get_normal_strength() const {
+    return normal_strength;
+}
+
+void Simulation::set_normal_strength(float n) {
+    normal_strength = n;
 }
 
 JONSWAP_params Simulation::get_params() const {
@@ -184,7 +197,7 @@ void Simulation::sim_end() {
     cudaFree(dxx_dzz);
     cudaFree(displacement);
     cudaFree(slope);
-    cudaFree(meso_normals);
+    cudaFree(normals);
     cudaFree(h0);
     cudaFree(waves_data);
     cudaGraphicsUnregisterResource(cuda_vbo_displacement);
