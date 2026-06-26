@@ -37,11 +37,7 @@ External dependencies (`imgui`, `glfw`, `glm`) are in `external/`.
 ## Build
 
 ```bash
-# Build GLFW first (one-time)
-cd external/glfw && mkdir build && cd build
-cmake .. && make
-
-# Then build the project
+# Build the project
 cd ../../..
 make
 ```
