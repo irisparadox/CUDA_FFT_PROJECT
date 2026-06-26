@@ -38,7 +38,6 @@ External dependencies (`imgui`, `glfw`, `glm`) are in `external/`.
 
 ```bash
 # Build the project
-cd ../../..
 make
 ```
 
