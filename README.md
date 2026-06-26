@@ -1,16 +1,15 @@
 # CUDA FFT Ocean Simulation
 
 Real-time ocean surface simulation running entirely on the GPU, using the
-**Inverse Fast Fourier Transform (IFFT)** technique described in
-[Tessendorf (2001)](https://people.computing.clemson.edu/~jtessen/reports/papers_files/coursenotes2004.pdf) —
-the same approach used in AAA game engines like those behind *Sea of Thieves*
-and *Assassin's Creed: Black Flag*.
+**Inverse Fast Fourier Transform (IFFT)** with the **JONSWAP** spectrum for
+wave energy distribution — the same approach used in AAA game engines like
+those behind *Sea of Thieves* and *Assassin's Creed: Black Flag*.
 
 ## Overview
 
 The simulation generates a statistically realistic ocean surface by:
 
-1. Building a frequency-domain spectrum (Phillips spectrum) based on wind speed and direction
+1. Building a frequency-domain spectrum using the **JONSWAP** model based on wind speed, fetch length, and sea state
 2. Evolving it over time using wave dispersion relations
 3. Running an **IFFT on the GPU** via **cuFFT** to recover the spatial surface each frame
 4. Rendering the result in real-time using **OpenGL** with CUDA/GL interop
@@ -57,7 +56,7 @@ make run
 
 ## References
 
-- J. Tessendorf, *Simulating Ocean Water*, SIGGRAPH 2001 Course Notes
+- Hasselmann et al., *Measurements of Wind-Wave Growth and Swell Decay during the Joint North Sea Wave Project (JONSWAP)*, 1973
 - [FFT-Ocean](https://github.com/gasgiant/FFT-Ocean) by gasgiant
 - [Water](https://github.com/GarrettGunnell/Water) by GarrettGunnell
 - [Video reference 1](https://youtu.be/kGEqaX4Y4bQ)
