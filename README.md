@@ -57,6 +57,7 @@ make run
 ## References
 
 - Hasselmann et al., *Measurements of Wind-Wave Growth and Swell Decay during the Joint North Sea Wave Project (JONSWAP)*, 1973
+- J. Tessendorf, *Simulating Ocean Water*, SIGGRAPH 2001 Course Notes
 - [FFT-Ocean](https://github.com/gasgiant/FFT-Ocean) by gasgiant
 - [Water](https://github.com/GarrettGunnell/Water) by GarrettGunnell
 - [Video reference 1](https://youtu.be/kGEqaX4Y4bQ)
